@@ -15,6 +15,7 @@ using System.IO;
 using MLR.Components.Common;
 using System.Windows.Forms;
 using GH_IO.Serialization;
+using MLR.Components.Params;
 
 namespace MLR.Components.Vision
 {
@@ -29,7 +30,7 @@ namespace MLR.Components.Vision
 
         protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
-            var imageFilenameParam = new Param_FilePath
+            var imageFilenameParam = new Param_Bytes
             {
                 NickName = "P",
                 Optional = true,
@@ -78,14 +79,13 @@ namespace MLR.Components.Vision
 
             Message = Path.GetFileNameWithoutExtension(m_filename);
 
-            string imageFilename = null;
+            byte[] bytes = null;
 
-            if (!DA.GetData(0, ref imageFilename)) return;
+            if (!DA.GetData(0, ref bytes)) return;
 
             var session = InferenceSessionCache.Instance.LoadInferenceSessionModel(m_filename);
 
-            using Image<Rgb24> image = Image.Load<Rgb24>(imageFilename, out IImageFormat format);
-            using Stream imageStream = new MemoryStream();
+            using Image<Rgb24> image = Image.Load<Rgb24>(bytes, out IImageFormat format);
             
             image.Mutate(x =>
             {
@@ -95,7 +95,6 @@ namespace MLR.Components.Vision
                     Mode = ResizeMode.Crop
                 });
             });
-            image.Save(imageStream, format);
 
             Tensor<float> input = new DenseTensor<float>(new[] { 1, 3, 224, 224 });
             var mean = new[] { 0.485f, 0.456f, 0.406f };
